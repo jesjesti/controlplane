@@ -1,0 +1,1 @@
+java -jar server_manifest.jar

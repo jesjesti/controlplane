@@ -1,0 +1,56 @@
+version: "3.8"
+
+networks:
+  cp_network:
+
+services:
+
+  cp-db:
+    image: mariadb:10.5.8
+    container_name: cp-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DATASOURCE_PASSWORD}
+      MYSQL_USER: ${DATASOURCE_USERNAME}
+      MYSQL_PASSWORD: ${DATASOURCE_PASSWORD}
+      MYSQL_DATABASE: controlplane
+    networks:
+      - cp_network
+    volumes:
+      - cp_data:/var/lib/mysql
+#    ports:
+#      - "3307:3306"   # Optional: prevents conflict with host MySQL
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin
+    depends_on:
+      - cp-db
+    environment:
+      PMA_HOST: cp-db
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    restart: always
+    networks:
+      - cp_network
+    ports:
+      - "${PMA_PORT}:80"
+
+  server-app:
+    build: ./server
+    container_name: server-app
+    depends_on:
+      - cp-db
+    restart: always
+    networks:
+      - cp_network
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://cp-db:3306/controlplane?useSSL=false
+      SPRING_DATASOURCE_USERNAME: ${DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DATASOURCE_PASSWORD}
+      SERVER_PORT: ${SERVER_PORT}
+
+volumes:
+  cp_data:
